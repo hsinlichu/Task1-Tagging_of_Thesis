@@ -101,7 +101,7 @@ ENV/
 .mypy_cache/
 
 # input data, saved log, checkpoints
-data/
+#data/
 input/
 saved/
 datasets/
@@ -110,3 +110,5 @@ datasets/
 .vscode/
 .idea/
 __MACOSX/
+*.swp
+.DS_Store

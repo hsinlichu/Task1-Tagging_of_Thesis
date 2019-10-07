@@ -1,15 +1,16 @@
 {
-    "name": "Mnist_LeNet",
+    "name": "ThesisTagging",
     "n_gpu": 1,
 
     "arch": {
-        "type": "MnistModel",
+        "type": "ThesisTaggingModel",
         "args": {}
     },
     "data_loader": {
-        "type": "MnistDataLoader",
+        "type": "ThesisTaggingDataLoader",
         "args":{
-            "data_dir": "data/",
+            "train_data_path": "data/train_processed.pkl",
+            "test_data_path": "data/test_processed.pkl",
             "batch_size": 128,
             "shuffle": true,
             "validation_split": 0.1,

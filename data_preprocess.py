@@ -8,13 +8,10 @@ import logging
 import math
 
 
-validation_portion = 0.1
-
 label_encoding = {"BACKGROUND": 0,"OBJECTIVES": 1,"METHODS": 2,"RESULTS": 3, "CONCLUSIONS": 4,"OTHERS": 5}
 
 training_data_save_path = os.path.join("data", "train_processed.pkl")
 testing_data_save_path = os.path.join("data", "test_processed.pkl")
-validating_data_save_path = os.path.join("data", "valid_processed.pkl")
 
 
 def main(args):
@@ -34,22 +31,13 @@ def main(args):
             article = [{"sentence": sentence, "label": label} for sentence, label in zip(sentence_array, label_array)]   
             data_processed.append(article)
 
-        train_processed = data_processed[math.floor(len(data_processed) * validation_portion):]
-        valid_processed = data_processed[:math.floor(len(data_processed) * validation_portion)]
+        train_processed = data_processed
 
         #pprint(train_processed[:1])
         logging.info("Number of training data: {}".format(len(train_processed)))
         with open(training_data_save_path, "wb") as f:
             pickle.dump(train_processed, f)
             logging.info("Processed training data save to {}".format(training_data_save_path))
-
-        #pprint(valid_processed[:1])
-        logging.info("Number of validating data: {}".format(len(valid_processed)))
-        with open(validating_data_save_path, "wb") as f:
-            pickle.dump(valid_processed, f)
-            logging.info("Processed validating data save to {}".format(validating_data_save_path))
-
-                        
                             
     testingdata = args.test
     if testingdata != None and os.path.isfile(testingdata):

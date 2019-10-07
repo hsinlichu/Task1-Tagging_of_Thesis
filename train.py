@@ -2,10 +2,13 @@ import argparse
 import collections
 import torch
 import numpy as np
+import os
+import pickle
 import data_loader.data_loaders as module_data
 import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
+import embedding as module_embedding
 from parse_config import ConfigParser
 from trainer import Trainer
 
@@ -20,8 +23,18 @@ np.random.seed(SEED)
 def main(config):
     logger = config.get_logger('train')
 
+    # setup word embedding
+    embedding_pkl_path = config["embedding"]["args"]["pkl_path"]
+    if os.path.isfile(embedding_pkl_path):
+        with open(embedding_pkl_path, "rb") as f:
+            embedding = pickle.load(f)
+    else:
+        embedding = config.init_obj('embedding', module_embedding)
+        with open(embedding_pkl_path, "wb") as f:
+            pickle.dump(embedding, f)
+
     # setup data_loader instances
-    data_loader = config.init_obj('data_loader', module_data)
+    data_loader = config.init_obj('data_loader', module_data, embedding=embedding)
     valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
@@ -38,7 +51,7 @@ def main(config):
 
     lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
 
-    trainer = Trainer(model, criterion, metrics, optimizer,
+    trainer = Trainer(model, criterion, metrics, optimizer, embedding, 
                       config=config,
                       data_loader=data_loader,
                       valid_data_loader=valid_data_loader,

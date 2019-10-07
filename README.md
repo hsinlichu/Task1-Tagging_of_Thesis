@@ -14,3 +14,7 @@ $ pip -r requirements.txt
 $ python ./data_preprocess.py --train ./data/task1_trainset.csv --test ./data/task1_public_testset.csv
 ```
 
+### Word Embedding
+
+https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
+

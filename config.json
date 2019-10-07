@@ -4,7 +4,9 @@
 
     "arch": {
         "type": "ThesisTaggingModel",
-        "args": {}
+        "args": {
+            "padded_len": 30
+        }
     },
     "data_loader": {
         "type": "ThesisTaggingDataLoader",
@@ -17,6 +19,15 @@
             "num_workers": 2
         }
     },
+    "embedding": {
+        "type": "fasttext_embedding",
+        "args": {
+            "rawdata_path": "data/crawl-300d-2M.vec",
+            "pkl_path": "data/crawl-300d-2M.vec"
+        }
+
+    },
+
     "optimizer": {
         "type": "Adam",
         "args":{

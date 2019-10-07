@@ -9,11 +9,18 @@ class Trainer(BaseTrainer):
     """
     Trainer class
     """
-    def __init__(self, model, criterion, metric_ftns, optimizer, config, data_loader,
+    def __init__(self, model, criterion, metric_ftns, optimizer, config, data_loader, embedding,
                  valid_data_loader=None, lr_scheduler=None, len_epoch=None):
         super().__init__(model, criterion, metric_ftns, optimizer, config)
         self.config = config
         self.data_loader = data_loader
+        self.embedding = embedding.vectors
+
+        #logging.info("Embedding size: ({},{})".format(embedding.size(0),embedding.size(1)))
+        self.embedding = nn.Embedding(embedding.size(0),embedding.size(1))
+        self.embedding.weight = nn.Parameter(embedding)
+        self.embedding = self.embedding.to(self.device)
+
         if len_epoch is None:
             # epoch-based training
             self.len_epoch = len(self.data_loader)
@@ -39,6 +46,7 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (data, target) in enumerate(self.data_loader):
+            print(data, target)
             data, target = data.to(self.device), target.to(self.device)
 
             self.optimizer.zero_grad()
@@ -107,3 +115,5 @@ class Trainer(BaseTrainer):
             current = batch_idx
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
+
+

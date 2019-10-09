@@ -44,7 +44,6 @@ class Trainer(BaseTrainer):
         for batch_idx, batch in enumerate(self.data_loader):
             data = batch["sentence"]
             target = batch["label"]
-            print(data.size(),target.size())
             data, target = data.to(self.device), target.to(self.device)
 
             self.optimizer.zero_grad()
@@ -87,7 +86,9 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(self.valid_data_loader):
+            for batch_idx, batch in enumerate(self.valid_data_loader):
+                data = batch["sentence"]
+                target = batch["label"]
                 data, target = data.to(self.device), target.to(self.device)
 
                 output = self.model(data)

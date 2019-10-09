@@ -3,11 +3,14 @@ import torch
 
 def accuracy(output, target):
     with torch.no_grad():
-        pred = torch.argmax(output, dim=1)
-        assert pred.shape[0] == len(target)
+        predict = (output > 0.5).type(torch.LongTensor)
+
         correct = 0
-        correct += torch.sum(pred == target).item()
-    return correct / len(target)
+        for p_r, t_r in zip(predict, target):
+            if torch.equal(t_r, p_r):
+                correct += 1
+        ret = correct / len(target)
+    return ret
 
 
 def top_k_acc(output, target, k=3):

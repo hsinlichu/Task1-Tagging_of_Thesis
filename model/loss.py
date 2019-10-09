@@ -6,5 +6,4 @@ def nll_loss(output, target):
     return F.nll_loss(output, target)
 
 def bce_loss(output, target):
-    print(output,target)
-    return nn.BCEWithLogitsLoss(output, target)
+    return nn.BCELoss()(output.double(), target.double())

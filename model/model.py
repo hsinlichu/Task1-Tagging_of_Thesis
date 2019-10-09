@@ -45,7 +45,8 @@ class ThesisTaggingModel(BaseModel):
                 nn.BatchNorm1d(hidden_size // 2),
                 nn.ReLU(),
                 nn.Dropout(self.clf_dropout),
-                nn.Linear(hidden_size // 2, num_classes)
+                nn.Linear(hidden_size // 2, num_classes),
+                nn.Sigmoid()
                 )
 
     def forward(self, sentence):
@@ -57,5 +58,4 @@ class ThesisTaggingModel(BaseModel):
         last_output = sentence_out[:,-1,:]
 
         score = self.clf(last_output)
-        print(score.size()) # torch.Size([64, 37])
         return score

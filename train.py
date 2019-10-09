@@ -24,7 +24,7 @@ def main(config):
     logger = config.get_logger('train')
 
     # setup word embedding
-    embedding_pkl_path = config["embedding"]["args"]["pkl_path"]
+    embedding_pkl_path = config["embedding"]["pkl_path"]
     if os.path.isfile(embedding_pkl_path):
         with open(embedding_pkl_path, "rb") as f:
             embedding = pickle.load(f)
@@ -38,7 +38,7 @@ def main(config):
     valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
-    model = config.init_obj('arch', module_arch)
+    model = config.init_obj('arch', module_arch, embedding=embedding)
     logger.info(model)
 
     # get function handles of loss and metrics
@@ -51,8 +51,8 @@ def main(config):
 
     lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
 
-    trainer = Trainer(model, criterion, metrics, optimizer, embedding, 
-                      config=config,
+    trainer = Trainer(model, criterion, metrics, optimizer, 
+                      config=config, 
                       data_loader=data_loader,
                       valid_data_loader=valid_data_loader,
                       lr_scheduler=lr_scheduler)

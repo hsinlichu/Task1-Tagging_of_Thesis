@@ -1,8 +1,10 @@
+import torch
 from torchvision import datasets, transforms
 from base import BaseDataLoader
 from torch.utils.data import Dataset
 import pickle
 import nltk
+nltk.download('punkt')
 
 
 class MnistDataLoader(BaseDataLoader):
@@ -24,28 +26,34 @@ class ThesisTaggingDataLoader(BaseDataLoader):
     """
     ThesisTagging data loading demo using BaseDataLoader
     """
-    def __init__(self, train_data_path, test_data_path, batch_size, embedding, shuffle=True, validation_split=0.0, num_workers=1, training=True):
+    def __init__(self, train_data_path, test_data_path, batch_size, num_classes, embedding, padding="<pad>", padded_len=40,
+            shuffle=True, validation_split=0.0, num_workers=1, training=True):
         if training:
             data_path = train_data_path
         else:
             data_path = test_data_path
             
-        print(data_path)
-        self.dataset = ThesisTaggingDataset(data_path, embedding)
-        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
+        self.dataset = ThesisTaggingDataset(data_path, embedding, num_classes, padding, padded_len)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
 
-
+    
 
 
 class ThesisTaggingDataset(Dataset):
-    def __init__(self, data_path, embedding, padding="<pad>", padded_len=40):
+    def __init__(self, data_path, embedding, num_classes, padding, padded_len):
         self.embedding = embedding
         self.data_path = data_path
         self.padded_len = padded_len
-        self.padding = padding
+        self.num_classes = num_classes
+        self.padding = self.embedding.to_index(padding)
 
         with open(data_path, "rb") as f:
-            self.dataset = pickle.load(f)
+            data = pickle.load(f)
+
+        self.dataset = []
+        
+        for i in data:
+            self.dataset += i
 
         print("Dataset total length: {}".format(len(self.dataset)))
         
@@ -54,33 +62,42 @@ class ThesisTaggingDataset(Dataset):
 
     def __getitem__(self, index):
         data = self.dataset[index] 
-        return self.sentence_to_indices(data["sentence"]), data["label"]
-
-    def _pad_to_len(self,arr):
-        if len(arr) > self.padded_len:
-            arr = arr[:self.padded_len]
-        while len(arr) < self.padded_len:
-            arr.append(self.padding)
-        return arr
-
-    def collate_fn(self, datas):
-        batch = {}
-        #batch['labels'] = torch.tensor(self._to_one_hot([r[-1] for r in datas]))
-        #batch['sentences'] = torch.tensor([ self._pad_to_len(r[:-2]) for r in datas])
-        return batch
+        sentence_indice = self.sentence_to_indices(data["sentence"])
+        return [sentence_indice, data["label"]]
 
     def tokenize(self, sentence):
         tokens = nltk.word_tokenize(sentence)
-        print(tokens)
+        #print(tokens)
 
         return tokens
 
 
     def sentence_to_indices(self, sentence):
+        sentence = sentence.lower()
         sentence = self.tokenize(sentence)
 
         ret = []
         for word in sentence:
             ret.append(self.embedding.to_index(word))
         return ret
+
+    def _pad_to_len(self, arr):
+        if len(arr) > self.padded_len:
+            arr = arr[:self.padded_len]
+        while len(arr) < self.padded_len:
+            arr.append(self.padding)
+        return arr
+
+    def _to_one_hot(self, y):
+        ret = [0 for i in range(self.num_classes)]
+        for l in y:
+            ret[l] = 1
+        return ret
+    def collate_fn(self, datas):
+        batch = {}
+        batch['label'] = torch.tensor([ self._to_one_hot(r[1]) for r in datas])
+        batch['sentence'] = torch.tensor([ self._pad_to_len(r[0]) for r in datas])
+        return batch
+
+
 

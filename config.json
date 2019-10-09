@@ -5,7 +5,14 @@
     "arch": {
         "type": "ThesisTaggingModel",
         "args": {
-            "padded_len": 30
+            "dim_embeddings": 300,
+            "num_classes": 6,
+            "hidden_size": 128,
+            "num_layers": 1,
+            "rnn_dropout": 0.2,
+            "clf_dropout": 0.3,
+            "bidirectional": false
+
         }
     },
     "data_loader": {
@@ -15,16 +22,19 @@
             "test_data_path": "data/test_processed.pkl",
             "batch_size": 128,
             "shuffle": true,
+            "num_classes": 6,
             "validation_split": 0.1,
-            "num_workers": 2
+            "num_workers": 2,
+            "padded_len": 30
         }
     },
     "embedding": {
         "type": "fasttext_embedding",
         "args": {
-            "rawdata_path": "data/crawl-300d-2M.vec",
-            "pkl_path": "data/crawl-300d-2M.vec"
-        }
+            "rawdata_path": "data/crawl-300d-2M.vec"
+        },
+        "pkl_path": "data/embedding_class.pkl"
+        
 
     },
 
@@ -36,7 +46,7 @@
             "amsgrad": true
         }
     },
-    "loss": "nll_loss",
+    "loss": "bce_loss",
     "metrics": [
         "accuracy", "top_k_acc"
     ],

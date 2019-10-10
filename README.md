@@ -26,12 +26,12 @@ $ python ./data_preprocess.py --train ./data/task1_trainset.csv --test ./data/ta
 ### Training
 
 ```
-python train.py -c config.json -d 0
+$ python train.py -c config.json -d 0
 ```
 
 ### Testing
 
 ```
-python test.py -c config.json -d 0 --resume saved/models/ThesisTagging/1010_013058/checkpoint-epoch9.pth
+$ python test.py -c config.json -d 0 --resume saved/models/ThesisTagging/1010_013058/model_best.pth
 ```
 

@@ -68,5 +68,10 @@
         "early_stop": 10,
 
         "tensorboard": true
+    },
+    "test":{
+        "sample_submission_file_path": "data/task1_sample_submission.csv",
+        "only_half": true
+
     }
 }

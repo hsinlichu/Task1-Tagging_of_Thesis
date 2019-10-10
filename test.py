@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import pickle
 import csv
 import datetime
@@ -56,22 +57,35 @@ def main(config):
     model.eval()
 
     with torch.no_grad():
-        predict = [["order_id","BACKGROUND","OBJECTIVES","METHODS","RESULTS","CONCLUSIONS","OTHERS"]]
+        predict = []
         for i, batch in enumerate(tqdm(data_loader)):
             data = batch["sentence"].to(device)
             number = batch["number"]
             output = model(data)
-            predict_class = (output > 0.5).type(torch.LongTensor).tolist()
-            result = [[i] + p_c for i, p_c in zip(number, predict_class) ]
-            predict += result
+            predict.append(output)
+        predict_all = torch.cat(predict)
 
-        now = datetime.datetime.now()
-        output_path = now.strftime("%m%d%H%M")+ "-predict.csv"
+        predict_class = (predict_all > 0.5).type(torch.LongTensor).tolist()
+        maxclass = torch.argmax(predict_all, dim=1).tolist() # make sure every sentence predicted to at least one class
+        print(predict_all[:5][:])
+        print("==")
+        print(maxclass[:5][:])
+        print("==")
+        print(predict_class[:5][:])
+        print("==")
+    submission = pd.read_csv(config["test"]["sample_submission_file_path"])
+    print("predict array len: {}".format(len(predict_class)))
 
-        with open(output_path, 'w', newline='\n') as myfile:
-            wr = csv.writer(myfile)
-            for r in predict:
-                wr.writerow(r)
+    for i in tqdm(range(len(predict_class))):
+        predict_class[i][maxclass[i]] = 1
+    submission.iloc[:len(predict_class),1:] = predict_class
+
+    print(submission.head())
+
+    now = datetime.datetime.now()
+    output_path = now.strftime("%m%d%H%M")+ "-predict.csv"
+    print("Predict file save to {}".format(output_path))
+    submission.to_csv(output_path, index=False)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='PyTorch Template')

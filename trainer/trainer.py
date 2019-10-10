@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import numpy as np
 import torch
 import torch.nn as nn
@@ -27,7 +28,7 @@ class Trainer(BaseTrainer):
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
-        self.log_step = int(np.sqrt(data_loader.batch_size))
+        self.log_step = int(self.len_epoch / 4) # int(np.sqrt(data_loader.batch_size))
 
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
@@ -41,7 +42,8 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, batch in enumerate(self.data_loader):
+        trange = tqdm(enumerate(self.data_loader), total=self.len_epoch, desc="training")
+        for batch_idx, batch in trange:
             data = batch["sentence"]
             target = batch["label"]
             data, target = data.to(self.device), target.to(self.device)
@@ -54,18 +56,27 @@ class Trainer(BaseTrainer):
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item())
-            for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(output, target))
 
+            predict = (output >= 0.5)
+            maxclass = torch.argmax(output, dim=1) # make sure every sentence predicted to at least one class
+            for i in range(len(predict)):
+                predict[i][maxclass[i].item()] = 1
+            predict = predict.type(torch.LongTensor).to(self.device)
+
+            for met in self.metric_ftns:
+                self.train_metrics.update(met.__name__, met(predict, target))
+
+            '''
             if batch_idx % self.log_step == 0:
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
                     loss.item()))
                 self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
-
+            '''
             if batch_idx == self.len_epoch:
                 break
+            trange.set_postfix(loss=loss.item())
         log = self.train_metrics.result()
 
         if self.do_validation:
@@ -96,8 +107,15 @@ class Trainer(BaseTrainer):
 
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
                 self.valid_metrics.update('loss', loss.item())
+
+                predict = (output >= 0.5)
+                maxclass = torch.argmax(output, dim=1) # make sure every sentence predicted to at least one class
+                for i in range(len(predict)):
+                    predict[i][maxclass[i].item()] = 1
+                predict = predict.type(torch.LongTensor).to(self.device)
+
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(output, target))
+                    self.valid_metrics.update(met.__name__, met(predict, target))
                 self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
         # add histogram of model parameters to the tensorboard

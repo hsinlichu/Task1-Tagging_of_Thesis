@@ -33,7 +33,6 @@ def main(args):
 
         train_processed = data_processed
 
-        #pprint(train_processed[:1])
         logging.info("Number of training data: {}".format(len(train_processed)))
         with open(training_data_save_path, "wb") as f:
             pickle.dump(train_processed, f)
@@ -52,7 +51,6 @@ def main(args):
             article = [{"number": "T{:05d}_S{:03d}".format(index + 1, sentence_index + 1) ,"sentence": sentence} for sentence_index, sentence in zip(range(len(sentence_array)), sentence_array)]   
             test_processed.append(article)
 
-        #pprint(test_processed[:1])
         logging.info("Number of testing data: {}".format(len(test_processed)))
 
         with open(testing_data_save_path, "wb") as f:

@@ -54,8 +54,6 @@ class ThesisTaggingDataset(Dataset):
         self.dataset = []
         for i in data:
             self.dataset += i
-
-        print("Dataset total length: {}".format(len(self.dataset)))
         
     def __len__(self):
         return len(self.dataset)

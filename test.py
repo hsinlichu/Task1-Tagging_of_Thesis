@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 import pickle
-import csv
 import datetime
+
 import argparse
 import torch
 from tqdm import tqdm
@@ -63,28 +63,22 @@ def main(config):
             number = batch["number"]
             output = model(data)
             predict.append(output)
-        predict_all = torch.cat(predict)
 
+        predict_all = torch.cat(predict)
         predict_class = (predict_all > 0.5).type(torch.LongTensor).tolist()
         maxclass = torch.argmax(predict_all, dim=1).tolist() # make sure every sentence predicted to at least one class
-        print(predict_all[:5][:])
-        print("==")
-        print(maxclass[:5][:])
-        print("==")
-        print(predict_class[:5][:])
-        print("==")
+
+    logger.info("Convert output array to submission format. ")
     submission = pd.read_csv(config["test"]["sample_submission_file_path"])
-    print("predict array len: {}".format(len(predict_class)))
+    logger.info("predict array len: {}".format(len(predict_class)))
 
     for i in tqdm(range(len(predict_class))):
         predict_class[i][maxclass[i]] = 1
     submission.iloc[:len(predict_class),1:] = predict_class
 
-    print(submission.head())
-
     now = datetime.datetime.now()
     output_path = now.strftime("%m%d%H%M")+ "-predict.csv"
-    print("Predict file save to {}".format(output_path))
+    logger.info("Submission file save to {}".format(output_path))
     submission.to_csv(output_path, index=False)
 
 if __name__ == '__main__':

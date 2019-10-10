@@ -7,6 +7,15 @@ $ python3 -m venv competition -r requirement.txt
 $ . ./competition/bin/activate
 $ pip -r requirements.txt
 ```
+### Word Embedding
+
+https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
+
+### Run Tensorboard Visualization
+Run below command at the project root, then server will open at `http://localhost:6006`
+```
+$ tensorboard --logdir saved/log/
+```
 
 ### Data Preprocess
 
@@ -14,7 +23,15 @@ $ pip -r requirements.txt
 $ python ./data_preprocess.py --train ./data/task1_trainset.csv --test ./data/task1_public_testset.csv
 ```
 
-### Word Embedding
+### Training
 
-https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
+```
+python train.py -c config.json -d 0
+```
+
+### Testing
+
+```
+python test.py -c config.json -d 0 --resume saved/models/ThesisTagging/1010_013058/checkpoint-epoch9.pth
+```
 

@@ -1,3 +1,7 @@
+import os
+import pickle
+import csv
+import datetime
 import argparse
 import torch
 from tqdm import tqdm
@@ -11,18 +15,28 @@ from parse_config import ConfigParser
 def main(config):
     logger = config.get_logger('test')
 
+    # setup word embedding
+    embedding_pkl_path = config["embedding"]["pkl_path"]
+    if os.path.isfile(embedding_pkl_path):
+        with open(embedding_pkl_path, "rb") as f:
+            embedding = pickle.load(f)
+
+
     # setup data_loader instances
     data_loader = getattr(module_data, config['data_loader']['type'])(
-        config['data_loader']['args']['data_dir'],
+        train_data_path=None,
+        test_data_path=config['data_loader']['args']['test_data_path'],
         batch_size=512,
         shuffle=False,
         validation_split=0.0,
+        num_workers=2,
         training=False,
-        num_workers=2
+        num_classes=6,
+        embedding=embedding
     )
 
     # build model architecture
-    model = config.init_obj('arch', module_arch)
+    model = config.init_obj('arch', module_arch, embedding=embedding)
     logger.info(model)
 
     # get function handles of loss and metrics
@@ -41,32 +55,23 @@ def main(config):
     model = model.to(device)
     model.eval()
 
-    total_loss = 0.0
-    total_metrics = torch.zeros(len(metric_fns))
-
     with torch.no_grad():
-        for i, (data, target) in enumerate(tqdm(data_loader)):
-            data, target = data.to(device), target.to(device)
+        predict = [["order_id","BACKGROUND","OBJECTIVES","METHODS","RESULTS","CONCLUSIONS","OTHERS"]]
+        for i, batch in enumerate(tqdm(data_loader)):
+            data = batch["sentence"].to(device)
+            number = batch["number"]
             output = model(data)
+            predict_class = (output > 0.5).type(torch.LongTensor).tolist()
+            result = [[i] + p_c for i, p_c in zip(number, predict_class) ]
+            predict += result
 
-            #
-            # save sample images, or do something with output here
-            #
+        now = datetime.datetime.now()
+        output_path = now.strftime("%m%d%H%M")+ "-predict.csv"
 
-            # computing loss, metrics on test set
-            loss = loss_fn(output, target)
-            batch_size = data.shape[0]
-            total_loss += loss.item() * batch_size
-            for i, metric in enumerate(metric_fns):
-                total_metrics[i] += metric(output, target) * batch_size
-
-    n_samples = len(data_loader.sampler)
-    log = {'loss': total_loss / n_samples}
-    log.update({
-        met.__name__: total_metrics[i].item() / n_samples for i, met in enumerate(metric_fns)
-    })
-    logger.info(log)
-
+        with open(output_path, 'w', newline='\n') as myfile:
+            wr = csv.writer(myfile)
+            for r in predict:
+                wr.writerow(r)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='PyTorch Template')

@@ -2,8 +2,10 @@ import torch
 
 
 def accuracy(output, target):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
         predict = (output > 0.5).type(torch.LongTensor)
+        predict, target = predict.to(device), target.to(device)
 
         correct = 0
         for p_r, t_r in zip(predict, target):

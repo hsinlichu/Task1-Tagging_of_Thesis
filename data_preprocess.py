@@ -28,7 +28,7 @@ def main(args):
             sentence_array = row['Abstract'].split("$$$")
             label_array = [[label_encoding[label] for label in labels.split("/")] for labels in row['Task 1'].split(" ")]
 
-            article = [{"sentence": sentence, "label": label} for sentence, label in zip(sentence_array, label_array)]   
+            article = [{"number": "T{:05d}_S{:03d}".format(index + 1, sentence_index + 1) ,"sentence": sentence, "label": label} for sentence_index, sentence, label in zip(range(len(sentence_array)), sentence_array, label_array)]   
             data_processed.append(article)
 
         train_processed = data_processed
@@ -49,8 +49,7 @@ def main(args):
 
         for index, row in test_select.iterrows():
             sentence_array = row['Abstract'].split("$$$")
-
-            article = [{"sentence": sentence} for sentence in sentence_array]   
+            article = [{"number": "T{:05d}_S{:03d}".format(index + 1, sentence_index + 1) ,"sentence": sentence} for sentence_index, sentence in zip(range(len(sentence_array)), sentence_array)]   
             test_processed.append(article)
 
         #pprint(test_processed[:1])

@@ -33,25 +33,25 @@ class ThesisTaggingDataLoader(BaseDataLoader):
         else:
             data_path = test_data_path
             
-        self.dataset = ThesisTaggingDataset(data_path, embedding, num_classes, padding, padded_len)
+        self.dataset = ThesisTaggingDataset(data_path, embedding, num_classes, padding, padded_len, training)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
 
     
 
 
 class ThesisTaggingDataset(Dataset):
-    def __init__(self, data_path, embedding, num_classes, padding, padded_len):
+    def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
         self.embedding = embedding
         self.data_path = data_path
         self.padded_len = padded_len
         self.num_classes = num_classes
         self.padding = self.embedding.to_index(padding)
+        self.training = training
 
         with open(data_path, "rb") as f:
             data = pickle.load(f)
 
         self.dataset = []
-        
         for i in data:
             self.dataset += i
 
@@ -63,7 +63,10 @@ class ThesisTaggingDataset(Dataset):
     def __getitem__(self, index):
         data = self.dataset[index] 
         sentence_indice = self.sentence_to_indices(data["sentence"])
-        return [sentence_indice, data["label"]]
+        if self.training:
+            return [data["number"], sentence_indice, data["label"]]
+        else:
+            return [data["number"], sentence_indice]
 
     def tokenize(self, sentence):
         tokens = nltk.word_tokenize(sentence)
@@ -95,8 +98,11 @@ class ThesisTaggingDataset(Dataset):
         return ret
     def collate_fn(self, datas):
         batch = {}
-        batch['label'] = torch.tensor([ self._to_one_hot(r[1]) for r in datas])
-        batch['sentence'] = torch.tensor([ self._pad_to_len(r[0]) for r in datas])
+        if self.training:
+            batch['label'] = torch.tensor([ self._to_one_hot(r[2]) for r in datas])
+        batch['sentence'] = torch.tensor([ self._pad_to_len(r[1]) for r in datas])
+        batch['number'] = [ r[0] for r in datas]
+
         return batch
 
 

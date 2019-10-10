@@ -3,7 +3,7 @@
 #### Install Environment
 
 ```
-$ python3 -m venv competition -r requirement.txt
+$ python3 -m venv competition
 $ . ./competition/bin/activate
 $ pip -r requirements.txt
 ```

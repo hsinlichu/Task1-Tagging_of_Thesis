@@ -102,6 +102,32 @@ class ThesisTaggingDataset(Dataset):
         batch['number'] = [ r[0] for r in datas]
 
         return batch
+class ThesisTaggingArticleDataset(Dataset):
+    def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
+        self.embedding = embedding
+        self.data_path = data_path
+        self.padded_len = padded_len
+        self.num_classes = num_classes
+        self.padding = self.embedding.to_index(padding)
+        self.training = training
+
+        with open(data_path, "rb") as f:
+            data = pickle.load(f)
+
+        self.dataset = []
+        for i in data:
+            self.dataset += i
+        
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        data = self.dataset[index] 
+        sentence_indice = self.sentence_to_indices(data["sentence"])
+        if self.training:
+            return [data["number"], sentence_indice, data["label"]]
+        else:
+            return [data["number"], sentence_indice]
 
 
 

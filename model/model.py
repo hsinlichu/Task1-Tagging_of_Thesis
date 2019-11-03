@@ -39,3 +39,176 @@ class ThesisTaggingModel(BaseModel):
 
         score = self.clf(last_output)
         return score
+
+class ThesisClassificationModel_hierarchical(BaseModel):
+    def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
+            num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.dim_embeddings = dim_embeddings
+        self.num_layers = num_layers
+        self.num_classes = num_classes
+        self.bidirectional = bool(bidirectional)
+        self.clf_dropout = clf_dropout
+
+        #logging.info("Embedding size: ({},{})".format(embedding.size(0),embedding.size(1)))
+        self.embedding = nn.Embedding(embedding.vectors.size(0), embedding.vectors.size(1))
+        self.embedding.weight = nn.Parameter(embedding.vectors)
+
+        self.rnn = nn.LSTM(input_size=self.dim_embeddings, hidden_size=self.hidden_size,
+                num_layers=self.num_layers, bidirectional=self.bidirectional, batch_first=True) # , dropout=rnn_dropout
+        
+        self.clf2_linear1 = nn.Linear(self.hidden_size, hidden_size // 2)
+        self.clf2_linear12 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear2 = nn.Linear(self.hidden_size+ 1, hidden_size // 2)
+        self.clf2_linear22 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear3 = nn.Linear(self.hidden_size+ 2, hidden_size // 2)
+        self.clf2_linear32 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear4 = nn.Linear(self.hidden_size+ 3, hidden_size // 2)
+        self.clf2_linear42 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear5 = nn.Linear(self.hidden_size+ 4, hidden_size // 2)
+        self.clf2_linear52 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear6 = nn.Linear(self.hidden_size+ 5, hidden_size // 2)
+        self.clf2_linear62 = nn.Linear(hidden_size // 2, 1)
+        self.Sigmoid = nn.Sigmoid()
+
+    def forward(self, sentence):
+        with torch.no_grad():
+            sentence = self.embedding(sentence)
+        #print(sentence.size()) # torch.Size([128, 30, 300])
+        sentence_out, hidden = self.rnn(sentence)
+        last_output = sentence_out[:,-1,:]
+        #print(last_output.size())
+
+
+        x = self.clf2_linear1(last_output)
+        x = self.clf2_linear12(x)
+        x = self.Sigmoid(x)
+        x2 = torch.cat((last_output,x),1)
+        y = self.clf2_linear2(x2)
+        y = self.clf2_linear22(y)
+        y = self.Sigmoid(y)
+        y2 = torch.cat((x2,y),1)
+        i = self.clf2_linear3(y2)
+        i = self.clf2_linear32(i)
+        i = self.Sigmoid(i)
+        i2 = torch.cat((y2,i),1)
+        j = self.clf2_linear4(i2)
+        j = self.clf2_linear42(j)
+        j = self.Sigmoid(j)
+        j2 = torch.cat((i2,j),1)
+        k = self.clf2_linear5(j2)
+        k = self.clf2_linear52(k)
+        k = self.Sigmoid(k)
+        k2 = torch.cat((j2,k),1)
+        m = self.clf2_linear6(k2)
+        m = self.clf2_linear62(m)
+        m = self.Sigmoid(m)
+        score = torch.cat((x,y,i,j,k,m),1)        
+
+        return score
+
+class ThesisTaggingModel_cascade(BaseModel):
+    def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
+            num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.dim_embeddings = dim_embeddings
+        self.num_layers = num_layers
+        self.num_classes = num_classes
+        self.bidirectional = bool(bidirectional)
+        self.clf_dropout = clf_dropout
+
+        #logging.info("Embedding size: ({},{})".format(embedding.size(0),embedding.size(1)))
+        self.embedding = nn.Embedding(embedding.vectors.size(0), embedding.vectors.size(1))
+        self.embedding.weight = nn.Parameter(embedding.vectors)
+
+        self.rnn = nn.LSTM(input_size=self.dim_embeddings, hidden_size=self.hidden_size,
+                num_layers=self.num_layers, bidirectional=self.bidirectional, batch_first=True) # , dropout=rnn_dropout
+
+        self.clf2_linear1 = nn.Linear(self.hidden_size + self.num_classes, hidden_size // 2)
+        self.clf2_linear12 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear2 = nn.Linear(self.hidden_size + self.num_classes+ 1, hidden_size // 2)
+        self.clf2_linear22 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear3 = nn.Linear(self.hidden_size + self.num_classes+ 2, hidden_size // 2)
+        self.clf2_linear32 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear4 = nn.Linear(self.hidden_size + self.num_classes+ 3, hidden_size // 2)
+        self.clf2_linear42 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear5 = nn.Linear(self.hidden_size + self.num_classes+ 4, hidden_size // 2)
+        self.clf2_linear52 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear6 = nn.Linear(self.hidden_size + self.num_classes+ 5, hidden_size // 2)
+        self.clf2_linear62 = nn.Linear(hidden_size // 2, 1)
+        self.Sigmoid = nn.Sigmoid()
+        self.relu = nn.ReLU()
+
+    def submodel(self, former_output,  sentence):
+        #print("former_output", former_output.size())
+        #print("sentence", sentence.size())
+        former_output = former_output.to("cuda")
+        sentence = sentence.to("cuda")
+        with torch.no_grad():
+            sentence = self.embedding(sentence)
+        #print(sentence.size()) # torch.Size([128, 30, 300])
+        sentence_out, hidden = self.rnn(sentence)
+        last_output = sentence_out[:,-1,:]
+
+        x1 = torch.cat((former_output, last_output),1)
+        x = self.clf2_linear1(x1)
+        x = self.relu(x)
+        x = self.clf2_linear12(x)
+        x = self.Sigmoid(x)
+        x2 = torch.cat((x1,x),1)
+        y = self.clf2_linear2(x2)
+        y = self.relu(y)
+        y = self.clf2_linear22(y)
+        y = self.Sigmoid(y)
+        y2 = torch.cat((x2,y),1)
+        i = self.clf2_linear3(y2)
+        i = self.relu(i)
+        i = self.clf2_linear32(i)
+        i = self.Sigmoid(i)
+        i2 = torch.cat((y2,i),1)
+        j = self.clf2_linear4(i2)
+        j = self.relu(j)
+        j = self.clf2_linear42(j)
+        j = self.Sigmoid(j)
+        j2 = torch.cat((i2,j),1)
+        k = self.clf2_linear5(j2)
+        k = self.relu(k)
+        k = self.clf2_linear52(k)
+        k = self.Sigmoid(k)
+        k2 = torch.cat((j2,k),1)
+        m = self.clf2_linear6(k2)
+        m = self.relu(m)
+        m = self.clf2_linear62(m)
+        m = self.Sigmoid(m)
+        score = torch.cat((x,y,i,j,k,m),1)        
+
+        return score
+
+    def forward(self, batch):
+        sentence_per_article = torch.IntTensor([article.size(0) for article in batch])
+        max_sentence_per_article = torch.max(sentence_per_article).item()
+        #print(sentence_per_article)
+        #print(max_sentence_per_article)
+
+        for i in range(len(batch)):
+            batch[i] = F.pad(batch[i], (0, 0, 0, max_sentence_per_article - batch[i].size()[0]), "constant", 0)
+        batch = torch.stack(batch).to("cuda")
+
+        output = []
+        init = torch.zeros([ batch.size()[0], self.num_classes])
+        former_output = init
+        for i in range(max_sentence_per_article):
+            score = self.submodel( former_output, batch[:, i, :])
+            output.append(score)
+            former_output = score
+
+        output = torch.stack(output, dim=1)
+        ret = []
+        for i in range(output.size(0)):
+            ret.append(output[i][:sentence_per_article[i]])
+
+        return ret
+    
+

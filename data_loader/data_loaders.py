@@ -6,6 +6,9 @@ import pickle
 import nltk
 nltk.download('punkt')
 
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
 class ThesisTaggingDataLoader(BaseDataLoader):
     """
     ThesisTagging data loading demo using BaseDataLoader
@@ -19,9 +22,6 @@ class ThesisTaggingDataLoader(BaseDataLoader):
             
         self.dataset = ThesisTaggingDataset(data_path, embedding, num_classes, padding, padded_len, training)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
-
-    
-
 
 class ThesisTaggingDataset(Dataset):
     def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
@@ -86,7 +86,23 @@ class ThesisTaggingDataset(Dataset):
         batch['number'] = [ r[0] for r in datas]
 
         return batch
-class ThesisTaggingArticleDataset(Dataset):
+
+
+class ThesisTaggingArticleDataLoader(BaseDataLoader):
+    """
+    ThesisTagging data loading demo using BaseDataLoader
+    """
+    def __init__(self, train_data_path, test_data_path, batch_size, num_classes, embedding, padding="<pad>", padded_len=40,
+            shuffle=True, validation_split=0.0, num_workers=1, training=True):
+        if training:
+            data_path = train_data_path
+        else:
+            data_path = test_data_path
+            
+        self.dataset = ThesisTaggingArticleDataset(data_path, embedding, num_classes, padding, padded_len, training)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
+
+class ThesisTaggingArticleDataset(ThesisTaggingDataset):
     def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
         self.embedding = embedding
         self.data_path = data_path
@@ -100,15 +116,32 @@ class ThesisTaggingArticleDataset(Dataset):
 
         self.dataset = []
         for i in data:
-            self.dataset += i
-        
-    def __len__(self):
-        return len(self.dataset)
+            self.dataset.append(i)
+        print("Number of training data: {}".format(len(self.dataset)))
 
     def __getitem__(self, index):
         data = self.dataset[index] 
-        sentence_indice = self.sentence_to_indices(data["sentence"])
-        if self.training:
-            return [data["number"], sentence_indice, data["label"]]
-        else:
-            return [data["number"], sentence_indice]
+        for i in range(len(data)):
+            data[i]["sentence"] = self.sentence_to_indices(data[i]["sentence"])
+
+        return data
+
+    def collate_fn(self, datas):
+        batch = {}
+        batch['label'] = []
+        batch['sentence'] = []
+        batch['number'] = []
+
+        for article in datas:
+            article_number = []
+            article_label = []
+            article_sentence = []
+            if self.training:
+                article_label = [ self._to_one_hot(r["label"]) for r in article]
+            article_sentence = [ self._pad_to_len(r["sentence"]) for r in article]
+            article_number = [ r["number"] for r in article]
+            batch['label'].append(torch.LongTensor(article_label))
+            batch['sentence'].append(torch.LongTensor(article_sentence))
+            batch['number'].append(article_number)
+
+        return batch

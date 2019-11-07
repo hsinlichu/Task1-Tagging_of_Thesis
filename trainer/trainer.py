@@ -62,7 +62,7 @@ class Trainer(BaseTrainer):
             self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-            self.train_metrics.update('loss', loss.item())
+            self.train_metrics.update('loss', loss.item(), output.size(0))
 
             predict = (output >= 0.5)
             maxclass = torch.argmax(output, dim=1) # make sure every sentence predicted to at least one class
@@ -71,7 +71,7 @@ class Trainer(BaseTrainer):
             predict = predict.type(torch.LongTensor).to(self.device)
 
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(predict, target))
+                self.train_metrics.update(met.__name__, met(predict, target), predict.size(0))
 
             '''
             if batch_idx % self.log_step == 0:
@@ -120,7 +120,7 @@ class Trainer(BaseTrainer):
                 loss = self.criterion(output, target)
 
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
-                self.valid_metrics.update('loss', loss.item())
+                self.valid_metrics.update('loss', loss.item(), output.size(0))
 
                 predict = (output >= 0.5)
                 maxclass = torch.argmax(output, dim=1) # make sure every sentence predicted to at least one class
@@ -129,7 +129,7 @@ class Trainer(BaseTrainer):
                 predict = predict.type(torch.LongTensor).to(self.device)
 
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(predict, target))
+                    self.valid_metrics.update(met.__name__, met(predict, target), predict.size(0))
                 #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
         # add histogram of model parameters to the tensorboard

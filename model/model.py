@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from base import BaseModel
 
+from transformers import *
+
 class ThesisTaggingModel(BaseModel):
     def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
             num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
@@ -373,4 +375,148 @@ class ThesisTaggingModel_cascade_tf(ThesisTaggingModel_cascade):
             ret.append(output[i][:sentence_per_article[i]])
 
         return ret
+
+class ThesisTaggingModel_cascade_bert(BaseModel):
+    def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
+            num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
+        super().__init__()
+        self.hidden_size = 768
+        self.dim_embeddings = dim_embeddings
+        self.num_layers = num_layers
+        self.num_classes = num_classes
+        self.bidirectional = bool(bidirectional)
+        self.clf_dropout = clf_dropout
+
+        MODELS = [(BertModel,       BertTokenizer,       'bert-base-uncased'),
+          (OpenAIGPTModel,  OpenAIGPTTokenizer,  'openai-gpt'),
+          (GPT2Model,       GPT2Tokenizer,       'gpt2'),
+          (CTRLModel,       CTRLTokenizer,       'ctrl'),
+          (TransfoXLModel,  TransfoXLTokenizer,  'transfo-xl-wt103'),
+          (XLNetModel,      XLNetTokenizer,      'xlnet-base-cased'),
+          (XLMModel,        XLMTokenizer,        'xlm-mlm-enfr-1024'),
+          (DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased'),
+          (RobertaModel,    RobertaTokenizer,    'roberta-base')]
+        
+        model_class, tokenizer_class, pretrained_weights = MODELS[0]
+        self.tokenizer = tokenizer_class.from_pretrained(pretrained_weights)
+        self.bert_model = model_class.from_pretrained(pretrained_weights)
+
+        self.padded_len = 40
+        self.pad_id = self.tokenizer.encode("[PAD]")[0]
+        print("pad_id", self.pad_id)
+
+        self.clf2_linear1 = nn.Linear(self.hidden_size + self.num_classes, hidden_size // 2)
+        #self.bn1 = nn.BatchNorm1d(hidden_size // 2)
+        self.clf2_linear12 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear2 = nn.Linear(self.hidden_size + self.num_classes+ 1, hidden_size // 2)
+        #self.bn2 = nn.BatchNorm1d(hidden_size // 2)
+        self.clf2_linear22 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear3 = nn.Linear(self.hidden_size + self.num_classes+ 2, hidden_size // 2)
+        #self.bn3 = nn.BatchNorm1d(hidden_size // 2)
+        self.clf2_linear32 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear4 = nn.Linear(self.hidden_size + self.num_classes+ 3, hidden_size // 2)
+        #self.bn4 = nn.BatchNorm1d(hidden_size // 2)
+        self.clf2_linear42 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear5 = nn.Linear(self.hidden_size + self.num_classes+ 4, hidden_size // 2)
+        #self.bn5 = nn.BatchNorm1d(hidden_size // 2)
+        self.clf2_linear52 = nn.Linear(hidden_size // 2, 1)
+        self.clf2_linear6 = nn.Linear(self.hidden_size + self.num_classes+ 5, hidden_size // 2)
+        #self.bn6 = nn.BatchNorm1d(hidden_size // 2)
+        self.clf2_linear62 = nn.Linear(hidden_size // 2, 1)
+        self.Sigmoid = nn.Sigmoid()
+        self.relu = nn.ReLU()
+        #self.dpo = nn.Dropout(p=self.clf_dropout)
+
+    def _pad_to_len(self, arr):
+        if len(arr) > self.padded_len:
+            arr = arr[:self.padded_len]
+        while len(arr) < self.padded_len:
+            arr.append(self.pad_id)
+            
+        return arr
+
+    def submodel(self, former_output,  sentence):
+        former_output = former_output.to("cuda")
+        
+        #input_ids = torch.tensor([self.tokenizer.encode("[CLS] " + sent + " [SEP]") for sent in sentence])
+        input_id = torch.tensor([self._pad_to_len(self.tokenizer.encode(sent, add_special_tokens=True)) # add [CLS] [PAD]
+                for sent in sentence]).to("cuda")
+
+        #print(input_id.size()) # [128, 40]
+        first_output = self.bert_model(input_id)[0][:,0,:]
+        #print(output.size()) # [128, 768]
+
+        x1 = torch.cat((former_output, first_output),1)
+        x = self.clf2_linear1(x1)
+        #x = self.bn1(x)
+        x = self.relu(x)
+        #x = self.dpo(x)
+        x = self.clf2_linear12(x)
+        x = self.Sigmoid(x)
+        x2 = torch.cat((x1,x),1)
+        y = self.clf2_linear2(x2)
+        #y = self.bn2(y)
+        y = self.relu(y)
+        #y = self.dpo(y)
+        y = self.clf2_linear22(y)
+        y = self.Sigmoid(y)
+        y2 = torch.cat((x2,y),1)
+        i = self.clf2_linear3(y2)
+        #i = self.bn3(i)
+        i = self.relu(i)
+        #i = self.dpo(i)
+        i = self.clf2_linear32(i)
+        i = self.Sigmoid(i)
+        i2 = torch.cat((y2,i),1)
+        j = self.clf2_linear4(i2)
+        #j = self.bn4(j)
+        j = self.relu(j)
+        #j = self.dpo(j)
+        j = self.clf2_linear42(j)
+        j = self.Sigmoid(j)
+        j2 = torch.cat((i2,j),1)
+        k = self.clf2_linear5(j2)
+        #k = self.bn5(k)
+        k = self.relu(k)
+        #k = self.dpo(k)
+        k = self.clf2_linear52(k)
+        k = self.Sigmoid(k)
+        k2 = torch.cat((j2,k),1)
+        m = self.clf2_linear6(k2)
+        #m = self.bn6(m)
+        m = self.relu(m)
+        #m = self.dpo(m)
+        m = self.clf2_linear62(m)
+        m = self.Sigmoid(m)
+        score = torch.cat((x,y,i,j,k,m),1)        
+
+        return score
+
+    def forward(self, batch):
+        sentence_per_article = torch.IntTensor([len(article) for article in batch])
+        max_sentence_per_article = torch.max(sentence_per_article).item()
+        #print(sentence_per_article)
+        #print(max_sentence_per_article)
+
+
+        for i in range(len(batch)):
+            pad = ["" for _ in range(max_sentence_per_article - len(batch[i]))]
+            batch[i].extend(pad)
+
+        output = []
+        init = torch.zeros([ len(batch), self.num_classes])
+        former_output = init
+        for i in range(max_sentence_per_article):
+            sentence_batch = [article[i] for article in batch]
+            score = self.submodel( former_output, sentence_batch)
+            output.append(score)
+            former_output = score
+
+        output = torch.stack(output, dim=1)
+        ret = []
+        for i in range(output.size(0)):
+            ret.append(output[i][:sentence_per_article[i]])
+        return ret
+    
+
 

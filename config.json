@@ -1,5 +1,5 @@
 {
-    "name": "model_cascade",
+    "name": "model_cascade_gru",
     "n_gpu": 1,
 
     "arch": {
@@ -34,8 +34,6 @@
             "rawdata_path": "data/crawl-300d-2M.vec"
         },
         "pkl_path": "data/embedding_class.pkl"
-        
-
     },
 
     "optimizer": {

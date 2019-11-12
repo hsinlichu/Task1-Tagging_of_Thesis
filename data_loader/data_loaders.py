@@ -123,7 +123,6 @@ class ThesisTaggingArticleDataset(ThesisTaggingDataset):
         data = self.dataset[index] 
         for i in range(len(data)):
             data[i]["sentence"] = self.sentence_to_indices(data[i]["sentence"])
-
         return data
 
     def collate_fn(self, datas):

@@ -6,21 +6,8 @@ import pickle
 import nltk
 nltk.download('punkt')
 
-
-class MnistDataLoader(BaseDataLoader):
-    """
-    MNIST data loading demo using BaseDataLoader
-    """
-    def __init__(self, data_dir, batch_size, shuffle=True, validation_split=0.0, num_workers=1, training=True):
-        trsfm = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        self.data_dir = data_dir
-        self.dataset = datasets.MNIST(self.data_dir, train=training, download=True, transform=trsfm)
-        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
-
-
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 class ThesisTaggingDataLoader(BaseDataLoader):
     """
@@ -35,9 +22,6 @@ class ThesisTaggingDataLoader(BaseDataLoader):
             
         self.dataset = ThesisTaggingDataset(data_path, embedding, num_classes, padding, padded_len, training)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
-
-    
-
 
 class ThesisTaggingDataset(Dataset):
     def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
@@ -104,4 +88,116 @@ class ThesisTaggingDataset(Dataset):
         return batch
 
 
+class ThesisTaggingArticleDataLoader(BaseDataLoader):
+    """
+    ThesisTagging data loading demo using BaseDataLoader
+    """
+    def __init__(self, train_data_path, test_data_path, batch_size, num_classes, embedding, padding="<pad>", padded_len=40,
+            shuffle=True, validation_split=0.0, num_workers=1, training=True):
+        if training:
+            data_path = train_data_path
+        else:
+            data_path = test_data_path
+            
+        self.dataset = ThesisTaggingArticleDataset(data_path, embedding, num_classes, padding, padded_len, training)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
 
+class ThesisTaggingArticleDataset(ThesisTaggingDataset):
+    def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
+        self.embedding = embedding
+        self.data_path = data_path
+        self.padded_len = padded_len
+        self.num_classes = num_classes
+        self.padding = self.embedding.to_index(padding)
+        self.training = training
+
+        with open(data_path, "rb") as f:
+            data = pickle.load(f)
+
+        self.dataset = []
+        for i in data:
+            self.dataset.append(i)
+        print("Number of training data: {}".format(len(self.dataset)))
+
+    def __getitem__(self, index):
+        data = self.dataset[index] 
+        for i in range(len(data)):
+            data[i]["sentence"] = self.sentence_to_indices(data[i]["sentence"])
+        return data
+
+    def collate_fn(self, datas):
+        batch = {}
+        batch['label'] = []
+        batch['sentence'] = []
+        batch['number'] = []
+
+        for article in datas:
+            article_number = []
+            article_label = []
+            article_sentence = []
+            if self.training:
+                article_label = [ self._to_one_hot(r["label"]) for r in article]
+            article_sentence = [ self._pad_to_len(r["sentence"]) for r in article]
+            article_number = [ r["number"] for r in article]
+            batch['label'].append(torch.LongTensor(article_label))
+            batch['sentence'].append(torch.LongTensor(article_sentence))
+            batch['number'].append(article_number)
+
+        return batch
+
+class ThesisTaggingArticleDataLoader_bert(BaseDataLoader):
+    """
+    ThesisTagging data loading demo using BaseDataLoader
+    """
+    def __init__(self, train_data_path, test_data_path, batch_size, num_classes, embedding, padding="<pad>", padded_len=40,
+            shuffle=True, validation_split=0.0, num_workers=1, training=True):
+        if training:
+            data_path = train_data_path
+        else:
+            data_path = test_data_path
+            
+        self.dataset = ThesisTaggingArticleDataset_bert(data_path, embedding, num_classes, padding, padded_len, training)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
+
+
+
+class ThesisTaggingArticleDataset_bert(ThesisTaggingDataset):
+    def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
+        self.embedding = embedding
+        self.data_path = data_path
+        self.padded_len = padded_len
+        self.num_classes = num_classes
+        self.padding = self.embedding.to_index(padding)
+        self.training = training
+
+        with open(data_path, "rb") as f:
+            data = pickle.load(f)
+
+        self.dataset = []
+        for i in data:
+            self.dataset.append(i)
+        print("Number of training data: {}".format(len(self.dataset)))
+
+    def __getitem__(self, index):
+        data = self.dataset[index] 
+        return data
+
+    def collate_fn(self, datas):
+        batch = {}
+        batch['label'] = []
+        batch['sentence'] = []
+        batch['number'] = []
+
+        for article in datas:
+            article_number = []
+            article_label = []
+            article_sentence = []
+            if self.training:
+                article_label = [ self._to_one_hot(r["label"]) for r in article]
+            article_sentence = [ r["sentence"] for r in article]
+            article_number = [ r["number"] for r in article]
+            batch['label'].append(torch.LongTensor(article_label))
+            batch['sentence'].append(article_sentence)
+            batch['number'].append(article_number)
+
+        return batch

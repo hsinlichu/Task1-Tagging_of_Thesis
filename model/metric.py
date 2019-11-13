@@ -20,7 +20,7 @@ def microF1(predict, target):
         tp = np.zeros(num_classes) 
         fp = np.zeros(num_classes) 
         fn = np.zeros(num_classes) 
-        for i in range(len(target)):
+        for i in range(total_len):
             for j in range(num_classes):
                 if target[i][j].item() == 1 and predict[i][j].item() == 1:
                     tp[j] += 1
@@ -37,6 +37,44 @@ def microF1(predict, target):
         p = tp_total / (tp_total + fp_total + epison)
         r = tp_total / (tp_total + fn_total + epison)
     return (2 * p * r) / ( p + r + epison)
+
+def tp(predict, target):
+    num_classes = 6
+    with torch.no_grad():
+        total_len = len(predict)
+        tp = np.zeros(num_classes) 
+        for i in range(total_len):
+            for j in range(num_classes):
+                if target[i][j].item() == 1 and predict[i][j].item() == 1:
+                    tp[j] += 1
+        tp_total = np.sum(tp)
+    return tp_total
+
+def fp(predict, target):
+    num_classes = 6
+    with torch.no_grad():
+        fp = np.zeros(num_classes) 
+        total_len = len(predict)
+        for i in range(total_len):
+            for j in range(num_classes):
+                if target[i][j].item() == 0 and predict[i][j].item() == 1:
+                    fp[j] += 1
+        fp_total = np.sum(fp)
+    return fp_total
+
+def fn(predict, target):
+    num_classes = 6
+    with torch.no_grad():
+        total_len = len(predict)
+        fn = np.zeros(num_classes) 
+        for i in range(total_len):
+            for j in range(num_classes):
+                if target[i][j].item() == 1 and predict[i][j].item() == 0:
+                    fn[j] += 1
+        fn_total = np.sum(fn)
+    return fn_total
+
+
 
 def top_k_acc(output, target, k=3):
     with torch.no_grad():

@@ -27,10 +27,10 @@ def main(config):
     data_loader = getattr(module_data, config['data_loader']['type'])(
         train_data_path=None,
         test_data_path=config['data_loader']['args']['test_data_path'],
-        batch_size=512,
+        batch_size=128,
         shuffle=False,
         validation_split=0.0,
-        num_workers=2,
+        num_workers=1,
         training=False,
         num_classes=6,
         embedding=embedding
@@ -59,9 +59,16 @@ def main(config):
     with torch.no_grad():
         predict = []
         for i, batch in enumerate(tqdm(data_loader)):
-            data = batch["sentence"].to(device)
+            data = batch["sentence"]
             number = batch["number"]
+
+            if not isinstance(data, list):   
+                data = data.to(device)
+
             output = model(data)
+            if isinstance(output, list):   
+                output = torch.cat(output, dim=0).to(device)
+
             predict.append(output)
 
         predict_all = torch.cat(predict)

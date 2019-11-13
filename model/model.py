@@ -397,11 +397,11 @@ class ThesisTaggingModel_cascade_bert(BaseModel):
           (DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased'),
           (RobertaModel,    RobertaTokenizer,    'roberta-base')]
         
-        model_class, tokenizer_class, pretrained_weights = MODELS[0]
+        model_class, tokenizer_class, pretrained_weights = MODELS[8]
         self.tokenizer = tokenizer_class.from_pretrained(pretrained_weights)
         self.bert_model = model_class.from_pretrained(pretrained_weights)
 
-        self.padded_len = 40
+        self.padded_len = 30
         self.pad_id = self.tokenizer.encode("[PAD]")[0]
         print("pad_id", self.pad_id)
 
@@ -438,13 +438,13 @@ class ThesisTaggingModel_cascade_bert(BaseModel):
     def submodel(self, former_output,  sentence):
         former_output = former_output.to("cuda")
         
-        #input_ids = torch.tensor([self.tokenizer.encode("[CLS] " + sent + " [SEP]") for sent in sentence])
-        input_id = torch.tensor([self._pad_to_len(self.tokenizer.encode(sent, add_special_tokens=True)) # add [CLS] [PAD]
-                for sent in sentence]).to("cuda")
-
-        #print(input_id.size()) # [128, 40]
-        first_output = self.bert_model(input_id)[0][:,0,:]
-        #print(output.size()) # [128, 768]
+        with torch.no_grad():
+            input_id = torch.tensor([self._pad_to_len(self.tokenizer.encode(sent, add_special_tokens=True)) # add [CLS] [PAD]
+                    for sent in sentence]).to("cuda")
+            attention_mask = (input_id != self.pad_id).float()
+            #print(input_id.size()) # [128, 40]
+            first_output = self.bert_model(input_id, attention_mask=attention_mask)[0][:,0,:]
+            #print(output.size()) # [128, 768]
 
         x1 = torch.cat((former_output, first_output),1)
         x = self.clf2_linear1(x1)

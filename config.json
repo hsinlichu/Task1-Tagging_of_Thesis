@@ -1,5 +1,5 @@
 {
-    "name": "model_cascade_gru_bert",
+    "name": "model_cascade_roberta_30_no_grad",
     "n_gpu": 1,
 
     "arch": {
@@ -39,7 +39,7 @@
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 0.001,
+            "lr": 5e-5,
             "weight_decay": 0,
             "amsgrad": true
         }

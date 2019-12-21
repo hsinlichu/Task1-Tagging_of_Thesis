@@ -48,13 +48,16 @@ class Trainer(BaseTrainer):
             target = batch["label"]
 
             if not isinstance(data, list):   # check if type is list
-                data, target = data.to(self.device), target.to(self.device)
+                data = data.to(self.device)
+            if not isinstance(target, list):   # check if type is list
+                target = target.to(self.device)
 
             self.optimizer.zero_grad()
             output = self.model(data)
 
             if isinstance(output, list):   
                 output = torch.cat(output, dim=0).to(self.device)
+            if isinstance(target, list):   
                 target = torch.cat(target, dim=0).to(self.device)
 
             loss = self.criterion(output, target)
@@ -109,12 +112,15 @@ class Trainer(BaseTrainer):
                 target = batch["label"]
 
                 if not isinstance(data, list):   
-                    data, target = data.to(self.device), target.to(self.device)
+                    data = data.to(self.device)
+                if not isinstance(target, list):   
+                    target = target.to(self.device)
 
                 output = self.model(data)
 
                 if isinstance(output, list):   
                     output = torch.cat(output, dim=0).to(self.device)
+                if isinstance(target, list):   
                     target = torch.cat(target, dim=0).to(self.device)
 
                 loss = self.criterion(output, target)

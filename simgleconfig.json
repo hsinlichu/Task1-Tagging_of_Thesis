@@ -1,13 +1,13 @@
 {
-    "name": "model_cascade_bert_len4_lr1e-3_wd0",
+    "name": "model_bert",
     "n_gpu": 1,
 
     "arch": {
-        "type": "ThesisTaggingModel_cascade_bert",
+        "type": "ThesisTaggingModel_bert",
         "args": {
             "dim_embeddings": 300,
             "num_classes": 6,
-            "hidden_size": 128,
+            "hidden_size": 768,
             "num_layers": 1,
             "rnn_dropout": 0.2,
             "clf_dropout": 0.3,
@@ -15,11 +15,11 @@
         }
     },
     "data_loader": {
-        "type": "ThesisTaggingArticleDataLoader_bert",
+        "type": "ThesisTaggingDataLoader_bert",
         "args":{
             "train_data_path": "data/train_processed.pkl",
             "test_data_path": "data/test_processed.pkl",
-            "batch_size": 2,
+            "batch_size": 32,
             "shuffle": true,
             "num_classes": 6,
             "validation_split": 0.1,
@@ -38,7 +38,7 @@
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 1e-3,
+            "lr": 3e-5,
             "weight_decay": 0,
             "amsgrad": true
         }

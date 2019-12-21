@@ -5,6 +5,8 @@ from base import BaseModel
 
 from transformers import *
 
+import os
+
 class ThesisTaggingModel(BaseModel):
     def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
             num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
@@ -376,6 +378,74 @@ class ThesisTaggingModel_cascade_tf(ThesisTaggingModel_cascade):
 
         return ret
 
+
+class ThesisTaggingModel_bert(BaseModel):
+    def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
+            num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
+        super().__init__()
+        self.hidden_size = 768
+        self.dim_embeddings = dim_embeddings
+        self.num_layers = num_layers
+        self.num_classes = num_classes
+        self.bidirectional = bool(bidirectional)
+        self.clf_dropout = clf_dropout
+
+        MODELS = [(BertModel,       BertTokenizer,       'bert-base-uncased'),
+          (OpenAIGPTModel,  OpenAIGPTTokenizer,  'openai-gpt'),
+          (GPT2Model,       GPT2Tokenizer,       'gpt2'),
+          (CTRLModel,       CTRLTokenizer,       'ctrl'),
+          (TransfoXLModel,  TransfoXLTokenizer,  'transfo-xl-wt103'),
+          (XLNetModel,      XLNetTokenizer,      'xlnet-base-cased'),
+          (XLMModel,        XLMTokenizer,        'xlm-mlm-enfr-1024'),
+          (DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased'),
+          (RobertaModel,    RobertaTokenizer,    'roberta-base')]
+        
+        
+        model_class, tokenizer_class, pretrained_weights = MODELS[0]
+        weight = pretrained_weights
+        weight_dir = pretrained_weights
+
+        #weight_dir = "../Task2-Classification_of_Thesis/lmft_roberta/"
+        #weight = os.path.join(weight_dir, "checkpoint-3800")
+        print(weight)
+        self.tokenizer = tokenizer_class.from_pretrained(weight_dir)
+        self.bert_model = model_class.from_pretrained(weight)
+
+        self.padded_len = 60
+        self.pad_id = self.tokenizer.encode("[PAD]")[0]
+        print("pad_id", self.pad_id)
+
+        self.clf = nn.Sequential(
+                nn.Linear(self.hidden_size, self.hidden_size // 2),
+                nn.BatchNorm1d(self.hidden_size // 2),
+                nn.ReLU(),
+                nn.Dropout(self.clf_dropout),
+                nn.Linear(self.hidden_size // 2, num_classes),
+                nn.Sigmoid()
+                )
+
+    def _pad_to_len(self, arr):
+        if len(arr) > self.padded_len:
+            arr = arr[:self.padded_len]
+        while len(arr) < self.padded_len:
+            arr.append(self.pad_id)
+            
+        return arr
+
+
+    def forward(self, sentence):
+        #with torch.no_grad():
+        input_id = torch.tensor([self._pad_to_len(self.tokenizer.encode(sent, add_special_tokens=True)) # add [CLS] [PAD]
+                for sent in sentence]).to("cuda")
+        attention_mask = (input_id != self.pad_id).float()
+        #print(input_id.size()) # [128, 40]
+        first_output = self.bert_model(input_id, attention_mask=attention_mask)[0][:,0,:]
+        #print(first_output.size()) # [128, 768]
+
+        score = self.clf(first_output)
+        return score
+
+
 class ThesisTaggingModel_cascade_bert(BaseModel):
     def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=128,
             num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
@@ -397,11 +467,18 @@ class ThesisTaggingModel_cascade_bert(BaseModel):
           (DistilBertModel, DistilBertTokenizer, 'distilbert-base-uncased'),
           (RobertaModel,    RobertaTokenizer,    'roberta-base')]
         
-        model_class, tokenizer_class, pretrained_weights = MODELS[8]
-        self.tokenizer = tokenizer_class.from_pretrained(pretrained_weights)
-        self.bert_model = model_class.from_pretrained(pretrained_weights)
+        
+        model_class, tokenizer_class, pretrained_weights = MODELS[0]
+        weight = pretrained_weights
+        weight_dir = pretrained_weights
 
-        self.padded_len = 30
+        #weight_dir = "../Task2-Classification_of_Thesis/lmft_roberta/"
+        #weight = os.path.join(weight_dir, "checkpoint-3800")
+        print(weight)
+        self.tokenizer = tokenizer_class.from_pretrained(weight_dir)
+        self.bert_model = model_class.from_pretrained(weight)
+
+        self.padded_len = 60
         self.pad_id = self.tokenizer.encode("[PAD]")[0]
         print("pad_id", self.pad_id)
 
@@ -438,13 +515,13 @@ class ThesisTaggingModel_cascade_bert(BaseModel):
     def submodel(self, former_output,  sentence):
         former_output = former_output.to("cuda")
         
-        with torch.no_grad():
-            input_id = torch.tensor([self._pad_to_len(self.tokenizer.encode(sent, add_special_tokens=True)) # add [CLS] [PAD]
-                    for sent in sentence]).to("cuda")
-            attention_mask = (input_id != self.pad_id).float()
-            #print(input_id.size()) # [128, 40]
-            first_output = self.bert_model(input_id, attention_mask=attention_mask)[0][:,0,:]
-            #print(output.size()) # [128, 768]
+        #with torch.no_grad():
+        input_id = torch.tensor([self._pad_to_len(self.tokenizer.encode(sent, add_special_tokens=True)) # add [CLS] [PAD]
+                for sent in sentence]).to("cuda")
+        attention_mask = (input_id != self.pad_id).float()
+        #print(input_id.size()) # [128, 40]
+        first_output = self.bert_model(input_id, attention_mask=attention_mask)[0][:,0,:]
+        #print(output.size()) # [128, 768]
 
         x1 = torch.cat((former_output, first_output),1)
         x = self.clf2_linear1(x1)

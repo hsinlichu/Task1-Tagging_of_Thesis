@@ -88,6 +88,71 @@ class ThesisTaggingDataset(Dataset):
         return batch
 
 
+class ThesisTaggingDataLoader_bert(BaseDataLoader):
+    """
+    ThesisTagging data loading demo using BaseDataLoader
+    """
+    def __init__(self, train_data_path, test_data_path, batch_size, num_classes, embedding, padding="<pad>", padded_len=40,
+            shuffle=True, validation_split=0.0, num_workers=1, training=True):
+        if training:
+            data_path = train_data_path
+        else:
+            data_path = test_data_path
+            
+        self.dataset = ThesisTaggingDataset_bert(data_path, embedding, num_classes, padding, padded_len, training)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
+
+class ThesisTaggingDataset_bert(Dataset):
+    def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):
+        self.embedding = embedding
+        self.data_path = data_path
+        self.padded_len = padded_len
+        self.num_classes = num_classes
+        self.padding = self.embedding.to_index(padding)
+        self.training = training
+
+        with open(data_path, "rb") as f:
+            data = pickle.load(f)
+
+        self.dataset = []
+        for i in data:
+            self.dataset += i
+        
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        data = self.dataset[index] 
+        sentence_indice = data["sentence"]
+        if self.training:
+            return [data["number"], sentence_indice, data["label"]]
+        else:
+            return [data["number"], sentence_indice]
+
+    def _to_one_hot(self, y):
+        ret = [0 for i in range(self.num_classes)]
+        for l in y:
+            ret[l] = 1
+        return ret
+
+    def collate_fn(self, datas):
+        batch = {}
+        batch['label'] = []
+        batch['sentence'] = []
+        batch['number'] = []
+
+        for r in datas:
+            if self.training:
+                batch['label'].append(self._to_one_hot(r[2]))
+            batch['sentence'].append(r[1]) 
+            batch['number'].append(r[0])
+        batch['label'] = torch.tensor(batch['label'])
+
+
+        return batch
+
+
+
 class ThesisTaggingArticleDataLoader(BaseDataLoader):
     """
     ThesisTagging data loading demo using BaseDataLoader
@@ -101,6 +166,8 @@ class ThesisTaggingArticleDataLoader(BaseDataLoader):
             
         self.dataset = ThesisTaggingArticleDataset(data_path, embedding, num_classes, padding, padded_len, training)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn=self.dataset.collate_fn)
+
+
 
 class ThesisTaggingArticleDataset(ThesisTaggingDataset):
     def __init__(self, data_path, embedding, num_classes, padding, padded_len, training):

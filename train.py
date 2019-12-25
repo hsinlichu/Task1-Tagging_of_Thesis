@@ -12,6 +12,7 @@ import embedding as module_embedding
 from parse_config import ConfigParser
 from trainer import Trainer
 
+from transformers import get_linear_schedule_with_warmup, AdamW
 
 # fix random seeds for reproducibility
 SEED = 123
@@ -47,9 +48,16 @@ def main(config):
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
 
-    lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
+    #optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
+    optimizer = AdamW(trainable_params, lr=1e-5, eps=1e-8)
+    
+
+    
+    #lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
+    t_total = len(data_loader) * 100
+    print("t_total", t_total)
+    lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=5, num_training_steps=t_total)
 
     trainer = Trainer(model, criterion, metrics, optimizer, 
                       config=config, 

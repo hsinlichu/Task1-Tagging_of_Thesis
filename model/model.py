@@ -401,12 +401,12 @@ class ThesisTaggingModel_bert(BaseModel):
           (RobertaModel,    RobertaTokenizer,    'roberta-base')]
         
         
-        model_class, tokenizer_class, pretrained_weights = MODELS[0]
+        model_class, tokenizer_class, pretrained_weights = MODELS[8]
         weight = pretrained_weights
         weight_dir = pretrained_weights
 
-        #weight_dir = "../Task2-Classification_of_Thesis/lmft_roberta/"
-        #weight = os.path.join(weight_dir, "checkpoint-3800")
+        #weight_dir = "../Task2-Classification_of_Thesis/lmft/"
+        #weight = os.path.join(weight_dir, "checkpoint-23000")
         print(weight)
         self.tokenizer = tokenizer_class.from_pretrained(weight_dir)
         self.bert_model = model_class.from_pretrained(weight)
@@ -472,8 +472,8 @@ class ThesisTaggingModel_cascade_bert(BaseModel):
         weight = pretrained_weights
         weight_dir = pretrained_weights
 
-        #weight_dir = "../Task2-Classification_of_Thesis/lmft_roberta/"
-        #weight = os.path.join(weight_dir, "checkpoint-3800")
+        weight_dir = "../Task2-Classification_of_Thesis/lmft/"
+        weight = os.path.join(weight_dir, "checkpoint-23000")
         print(weight)
         self.tokenizer = tokenizer_class.from_pretrained(weight_dir)
         self.bert_model = model_class.from_pretrained(weight)

@@ -32,8 +32,12 @@ class Trainer(BaseTrainer):
 
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
+    def get_lr(self):
+        for param_group in self.optimizer.param_groups:
+            return param_group['lr']
 
     def _train_epoch(self, epoch):
+        self.logger.info("Current learning rate: {}".format(self.get_lr()))
         """
         Training logic for an epoch
 

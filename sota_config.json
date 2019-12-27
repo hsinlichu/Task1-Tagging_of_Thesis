@@ -1,12 +1,12 @@
 {
-    "name": "model_cascade_selftrain_bert6.3_ft0.001_len60_wilberloss",
+    "name": "model_cascade_bertlarge_ft1e-5_len60_wilberloss_bs2_ls8_3sent",
     "n_gpu": 1,
     "arch": {
-        "type": "ThesisTaggingModel_cascade_bert",
+        "type": "ThesisTaggingModel_cascade_bert_3sent",
         "args": {
-            "dim_embeddings": 300,
+            "dim_embeddings": 1024,
             "num_classes": 6,
-            "hidden_size": 128,
+            "hidden_size": 1024,
             "num_layers": 1,
             "rnn_dropout": 0.2,
             "clf_dropout": 0.3,
@@ -18,7 +18,7 @@
         "args": {
             "train_data_path": "data/train_processed.pkl",
             "test_data_path": "data/test_processed.pkl",
-            "batch_size": 6,
+            "batch_size": 1,
             "shuffle": true,
             "num_classes": 6,
             "validation_split": 0.1,
@@ -36,7 +36,7 @@
     "optimizer": {
         "type": "Adam",
         "args": {
-            "lr": 0.001,
+            "lr": 1e-5,
             "weight_decay": 0,
             "amsgrad": true
         }
@@ -49,12 +49,12 @@
     "lr_scheduler": {
         "type": "StepLR",
         "args": {
-            "step_size": 50,
+            "step_size": 8,
             "gamma": 0.1
         }
     },
     "trainer": {
-        "epochs": 100,
+        "epochs": 20,
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,

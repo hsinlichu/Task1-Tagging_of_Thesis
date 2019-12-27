@@ -1,12 +1,12 @@
 {
-    "name": "model_cascade_bertlarge_ft1e-5_len60_wilberloss_bs2_ls8_3sent",
+    "name": "model_cascade_gpt2_ft1e-5_len60_wilberloss_bs1_3sent_ls7_adamW_strongformer",
     "n_gpu": 1,
     "arch": {
         "type": "ThesisTaggingModel_cascade_bert_3sent",
         "args": {
-            "dim_embeddings": 1024,
+            "dim_embeddings": 768,
             "num_classes": 6,
-            "hidden_size": 1024,
+            "hidden_size": 768,
             "num_layers": 1,
             "rnn_dropout": 0.2,
             "clf_dropout": 0.3,
@@ -34,7 +34,7 @@
         "pkl_path": "data/embedding_class.pkl"
     },
     "optimizer": {
-        "type": "Adam",
+        "type": "AdamW",
         "args": {
             "lr": 1e-5,
             "weight_decay": 0,
@@ -49,12 +49,12 @@
     "lr_scheduler": {
         "type": "StepLR",
         "args": {
-            "step_size": 8,
+            "step_size": 7,
             "gamma": 0.1
         }
     },
     "trainer": {
-        "epochs": 20,
+        "epochs": 25,
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,

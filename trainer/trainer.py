@@ -65,7 +65,14 @@ class Trainer(BaseTrainer):
                 target = torch.cat(target, dim=0).to(self.device)
 
             loss = self.criterion(output, target)
-            loss.backward()
+
+            fp16 = False
+            if fp16:
+                from apex import amp
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
             self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)

@@ -604,14 +604,14 @@ class ThesisTaggingModel_cascade_bert_3sent(BaseModel):
     def __init__(self, dim_embeddings, num_classes, embedding, hidden_size=768,
             num_layers=1,  rnn_dropout=0.2, clf_dropout=0.3, bidirectional=False):
         super().__init__()
-        self.hidden_size = 1024
+        self.hidden_size = 768
         self.dim_embeddings = dim_embeddings
         self.num_layers = num_layers
         self.num_classes = num_classes
         self.bidirectional = bool(bidirectional)
         self.clf_dropout = clf_dropout
 
-        MODELS = [(BertModel,       BertTokenizer,       'bert-large-uncased'),
+        MODELS = [(BertModel,       BertTokenizer,       'bert-base-uncased'),
           (OpenAIGPTModel,  OpenAIGPTTokenizer,  'openai-gpt'),
           (GPT2Model,       GPT2Tokenizer,       'gpt2'),
           (CTRLModel,       CTRLTokenizer,       'ctrl'),
@@ -622,12 +622,12 @@ class ThesisTaggingModel_cascade_bert_3sent(BaseModel):
           (RobertaModel,    RobertaTokenizer,    'roberta-base')]
         
         
-        model_class, tokenizer_class, pretrained_weights = MODELS[0]
+        model_class, tokenizer_class, pretrained_weights = MODELS[2]
         weight = pretrained_weights
         weight_dir = pretrained_weights
 
         #weight_dir = "../Task2-Classification_of_Thesis/lmft_large/"
-        #weight = os.path.join(weight_dir, "checkpoint-4550")
+        #weight = os.path.join(weight_dir, "checkpoint-23000")
         print(weight)
         self.tokenizer = tokenizer_class.from_pretrained(weight_dir)
         self.bert_model = model_class.from_pretrained(weight)
@@ -747,6 +747,7 @@ class ThesisTaggingModel_cascade_bert_3sent(BaseModel):
         #print(input_id.size()) # [128, 40]
         sentence_embedding = self.bert_model(input_id, attention_mask=attention_mask)[0][:,0,:].cuda()
         #print(sentence_embedding.size()) # [xxx, 758]
+
         estimate_result = self.estimate_clf(sentence_embedding).cuda()
 
         # transform
@@ -756,7 +757,7 @@ class ThesisTaggingModel_cascade_bert_3sent(BaseModel):
             
 
         output = [[] for i in range(len(sentence_per_article))]
-        init = torch.zeros([self.num_classes]).cuda()
+        init = torch.zeros([self.num_classes]).cuda().type(torch.half)
         for i in range(max_sentence_per_article):
             output_belong = []
             sentence_batch = []
@@ -769,7 +770,7 @@ class ThesisTaggingModel_cascade_bert_3sent(BaseModel):
                     if i == 0:
                         former_batch.append(init)
                     else:
-                        former_batch.append(estimate_result[article_start_index[j] + i - 1])
+                        former_batch.append(output[j][-1])
                     if index == article_start_index[j + 1] - 1:
                         after_batch.append(init)
                     else:
@@ -779,6 +780,7 @@ class ThesisTaggingModel_cascade_bert_3sent(BaseModel):
             former_batch = torch.stack(former_batch, dim=0)
             after_batch = torch.stack(after_batch, dim=0)
             sentence_batch = torch.stack(sentence_batch, dim=0)
+            #sentence_batch = torch.stack(sentence_batch, dim=0).type(torch.half)
 
             
             score = self.submodel(former_batch, sentence_batch, after_batch)

@@ -234,7 +234,7 @@ class ThesisTaggingArticleDataset_bert(ThesisTaggingDataset):
         self.data_path = data_path
         self.padded_len = padded_len
         self.num_classes = num_classes
-        self.padding = self.embedding.to_index(padding)
+        #self.padding = self.embedding.to_index(padding)
         self.training = training
 
         with open(data_path, "rb") as f:

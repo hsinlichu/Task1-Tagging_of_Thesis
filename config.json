@@ -1,8 +1,8 @@
 {
-    "name": "model_cascade_selftrain_bertbase_ft0.001_len60_wilberloss_bs128_3sent_ls7_adamW_strongformer",
+    "name": "model_cascade_selftrain_bertbase_ft0.001_len60_wilberloss_bs32_7sent_ls7_adamW_strongformer",
     "n_gpu": 1,
     "arch": {
-        "type": "ThesisTaggingModel_cascade_bert_3sent",
+        "type": "ThesisTaggingModel_cascade_bert_7sent",
         "args": {
             "dim_embeddings": 768,
             "num_classes": 6,
@@ -18,7 +18,7 @@
         "args": {
             "train_data_path": "data/train_processed.pkl",
             "test_data_path": "data/test_processed.pkl",
-            "batch_size": 128,
+            "batch_size": 32,
             "shuffle": true,
             "num_classes": 6,
             "validation_split": 0.1,

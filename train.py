@@ -35,7 +35,7 @@ def main(config):
             pickle.dump(embedding, f)
 
     # setup data_loader instances
-    data_loader = config.init_obj('data_loader', module_data, embedding=embedding)
+    data_loader = config.init_obj('data_loader', module_data, embedding=None)#embedding=embedding)
     valid_data_loader = data_loader.split_validation()
     with open("valid_dataloader.pkl", "wb") as fout:
         pickle.dump(valid_data_loader, fout)

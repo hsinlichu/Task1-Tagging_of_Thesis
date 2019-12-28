@@ -5,16 +5,12 @@ import numpy as np
 from torch.autograd import Variable
 
 def bce_loss(output, target):
-    return nn.BCELoss()(output.double(), target.double())
+    return nn.BCELoss()(output.float(), target.float())
 
 
 ### Below are wilber loss
 def nll_loss(output, target):
     return F.nll_loss(output, target)
-
-def bce_loss(output, target):
-    return nn.BCELoss()(output.float(), target.float())
-
 
 def f1_loss(output, target):
     f1_loss = F1_Loss()

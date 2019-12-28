@@ -5,6 +5,7 @@ import torch.nn as nn
 from torchvision.utils import make_grid
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker
+from apex import amp
 
 
 class Trainer(BaseTrainer):
@@ -37,6 +38,10 @@ class Trainer(BaseTrainer):
             return param_group['lr']
 
     def _train_epoch(self, epoch):
+        fp16 = False
+        gradient_accumulation_steps = 1
+
+        self.logger.info("Current gradient_accumulation_steps: {}".format(gradient_accumulation_steps))
         self.logger.info("Current learning rate: {}".format(self.get_lr()))
         """
         Training logic for an epoch
@@ -56,48 +61,64 @@ class Trainer(BaseTrainer):
             if not isinstance(target, list):   # check if type is list
                 target = target.to(self.device)
 
-            self.optimizer.zero_grad()
             output = self.model(data)
 
             if isinstance(output, list):   
-                output = torch.cat(output, dim=0).to(self.device)
+                output = torch.cat(output, dim=0).cuda()
             if isinstance(target, list):   
-                target = torch.cat(target, dim=0).to(self.device)
+                target = torch.cat(target, dim=0).cuda()
 
-            loss = self.criterion(output, target)
-
-            fp16 = False
+            
             if fp16:
-                from apex import amp
+                print(output, target)
+                loss = self.criterion(output, target).half()
+                print(loss)
+            else:
+                loss = self.criterion(output, target)
+
+            if gradient_accumulation_steps > 1:
+                loss = loss / gradient_accumulation_steps
+
+            if fp16:
                 with amp.scale_loss(loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss.backward()
-            self.optimizer.step()
 
-            self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-            self.train_metrics.update('loss', loss.item(), output.size(0))
 
-            predict = (output >= 0.5)
-            maxclass = torch.argmax(output, dim=1) # make sure every sentence predicted to at least one class
-            for i in range(len(predict)):
-                predict[i][maxclass[i].item()] = 1
-            predict = predict.type(torch.LongTensor).to(self.device)
+            if (batch_idx + 1) % gradient_accumulation_steps == 0:
+                if fp16:
+                    torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), 1.0)
+                else:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
-            for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(predict, target), predict.size(0))
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                
 
-            '''
-            if batch_idx % self.log_step == 0:
-                self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
-                    epoch,
-                    self._progress(batch_idx),
-                    loss.item()))
-                self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
-            '''
-            if batch_idx == self.len_epoch:
-                break
-            trange.set_postfix(loss=loss.item())
+                self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
+                self.train_metrics.update('loss', loss.item(), output.size(0))
+
+                predict = (output >= 0.5)
+                maxclass = torch.argmax(output, dim=1) # make sure every sentence predicted to at least one class
+                for i in range(len(predict)):
+                    predict[i][maxclass[i].item()] = 1
+                predict = predict.type(torch.LongTensor).to(self.device)
+
+                for met in self.metric_ftns:
+                    self.train_metrics.update(met.__name__, met(predict, target), predict.size(0))
+
+                '''
+                if batch_idx % self.log_step == 0:
+                    self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
+                        epoch,
+                        self._progress(batch_idx),
+                        loss.item()))
+                    self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                '''
+                if batch_idx == self.len_epoch:
+                    break
+                trange.set_postfix(loss=loss.item())
         log = self.train_metrics.result()
 
         if self.do_validation:

@@ -37,6 +37,8 @@ def main(config):
     # setup data_loader instances
     data_loader = config.init_obj('data_loader', module_data, embedding=embedding)
     valid_data_loader = data_loader.split_validation()
+    with open("valid_dataloader.pkl", "wb") as fout:
+        pickle.dump(valid_data_loader, fout)
 
     # build model architecture, then print to console
     model = config.init_obj('arch', module_arch, embedding=embedding)
@@ -50,9 +52,6 @@ def main(config):
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
 
     optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
-    #optimizer = AdamW(trainable_params, lr=1e-3, eps=1e-8)
-    
-
     
     lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
     #t_total = len(data_loader) * 100

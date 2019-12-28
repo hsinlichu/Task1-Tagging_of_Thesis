@@ -1,12 +1,12 @@
 {
-    "name": "model_cascade_gpt2_ft1e-5_len60_wilberloss_bs1_3sent_ls7_adamW_strongformer",
+    "name": "model_cascade_t5_ft1e-4_len60_wilberloss_bs4_3sent_ls7_adamW_strongformer_gc8",
     "n_gpu": 1,
     "arch": {
         "type": "ThesisTaggingModel_cascade_bert_3sent",
         "args": {
             "dim_embeddings": 768,
             "num_classes": 6,
-            "hidden_size": 768,
+            "hidden_size": 64,
             "num_layers": 1,
             "rnn_dropout": 0.2,
             "clf_dropout": 0.3,
@@ -18,7 +18,7 @@
         "args": {
             "train_data_path": "data/train_processed.pkl",
             "test_data_path": "data/test_processed.pkl",
-            "batch_size": 1,
+            "batch_size": 4,
             "shuffle": true,
             "num_classes": 6,
             "validation_split": 0.1,
@@ -36,7 +36,7 @@
     "optimizer": {
         "type": "AdamW",
         "args": {
-            "lr": 1e-5,
+            "lr": 1e-4,
             "weight_decay": 0,
             "amsgrad": true
         }

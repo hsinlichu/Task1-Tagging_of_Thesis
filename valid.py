@@ -6,19 +6,51 @@ import datetime
 import argparse
 import torch
 from tqdm import tqdm
-import data_loader.data_loaders as module_data
-import model.loss as module_loss
-import model.metric as module_metric
 import model.model as module_arch
 from parse_config import ConfigParser
+
+data_path = "valid_sentence.pkl"
+gt_path = "valid_gt.pkl"
+
+# fix random seeds for reproducibility
+SEED = 123
+torch.manual_seed(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 
 def main(config):
     logger = config.get_logger('valid')
 
-    # setup data_loader instances
-    with open("valid_dataloader.pkl", "rb") as fin:
-        data_loader = pickle.load(fin)
+    
+    output_gt = False
+    if output_gt:
+        # setup data_loader instances
+        with open("valid_dataloader.pkl", "rb") as fin:
+            data_loader = pickle.load(fin)
+
+        data_list = []
+        gt = []
+        for i, batch in enumerate(tqdm(data_loader)):
+            data = batch["sentence"]
+            label = batch["label"]
+            gt += label
+            data_list.append(data)
+
+        #print(gt)
+        gt_all = torch.cat(gt)
+        with open(gt_path, "wb") as fout:
+            print("Save validation ground truth file to {}".format(gt_path))
+            pickle.dump(gt_all, fout)
+
+        with open(data_path, "wb") as fout:
+            print("Save validation sentence data file to {}".format(data_path))
+            pickle.dump(data_list, fout)
+
+
+    with open(data_path, "rb") as fin:
+        data_list = pickle.load(fin)
+
 
     # build model architecture
     model = config.init_obj('arch', module_arch, embedding=None)
@@ -35,13 +67,8 @@ def main(config):
     model.eval()
 
     with torch.no_grad():
-        gt = []
         predict = []
-        for i, batch in enumerate(tqdm(data_loader)):
-            data = batch["sentence"]
-            number = batch["number"]
-            label = batch["label"]
-            gt += label
+        for i, data in enumerate(tqdm(data_list)):
 
             if not isinstance(data, list):   
                 data = data.to(device)
@@ -54,14 +81,6 @@ def main(config):
 
         predict_all = torch.cat(predict).cpu()
 
-        output_gt = False
-        if output_gt:
-            #print(gt)
-            gt_all = torch.cat(gt)
-            gt_path = "valid_gt.pkl"
-            with open(gt_path, "wb") as fout:
-                print("Save validation ground truth file to {}".format(gt_path))
-                pickle.dump(gt_all, fout)
 
     logger.info("Convert output array to submission format. ")
     submission = pd.read_csv(config["test"]["sample_submission_file_path"])
@@ -80,6 +99,9 @@ if __name__ == '__main__':
                       help='config file path (default: None)')
     args.add_argument('-r', '--resume', default=None, type=str,
                       help='path to latest checkpoint (default: None)')
+    args.add_argument('-d', '--device', default=None, type=str,
+                      help='indices of GPUs to enable (default: all)')
+
 
     config = ConfigParser.from_args(args)
     main(config)

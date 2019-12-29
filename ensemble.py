@@ -10,16 +10,20 @@ from tqdm import tqdm
 from model.metric import microF1
 
 valid = True
+threshold = 0.5
+submission_path = "./data/task1_sample_submission.csv"
 
 
 def main():
-    model_name = ["12290059-valid_predict.csv"]#["robertalarge_ped65.csv", "bertbase0.001.csv"]
-    prob = [1]
-    submission = pd.read_csv(sys.argv[1])
+    model_name = ["7sentence.csv", "5sentence.csv", "3sentence.csv", "pad40.csv"]#["robertalarge_ped65.csv", "bertbase0.001.csv"]
+    prob = [0.25, 0.25, 0.25, 0.25, 0.25]
+    submission = pd.read_csv(submission_path)
 
 
     for weight, name in zip(prob, model_name):
+        print("{} * {}".format(weight, name))
         current_csv = pd.read_csv(name)
+        #print(current_csv)
         submission.iloc[:,1:] += current_csv.iloc[:,1:] * weight
 
     maxclass = submission.iloc[:,1:].idxmax(1) # make sure every sentence predicted to at least one class
@@ -27,8 +31,8 @@ def main():
 
     for i in tqdm(range(submission.shape[0])):
         submission[maxclass.iloc[i]][i] = 1
-    submission.iloc[:,1:] = (submission.iloc[:,1:] > 0.5).astype(int)
-
+    print("Current threshold: {}".format(threshold))
+    submission.iloc[:,1:] = (submission.iloc[:,1:] > threshold).astype(int)
 
 
     if valid: 

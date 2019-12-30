@@ -26,7 +26,7 @@ def main(config):
     # setup data_loader instances
     data_loader = getattr(module_data, config['data_loader']['type'])(
         train_data_path=None,
-        test_data_path=config['data_loader']['args']['test_data_path'],
+        test_data_path="./data/test_private_processed.pkl",#config['data_loader']['args']['test_data_path'],
         batch_size=128,
         shuffle=False,
         validation_split=0.0,

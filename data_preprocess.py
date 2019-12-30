@@ -11,7 +11,7 @@ import math
 label_encoding = {"BACKGROUND": 0,"OBJECTIVES": 1,"METHODS": 2,"RESULTS": 3, "CONCLUSIONS": 4,"OTHERS": 5}
 
 training_data_save_path = os.path.join("data", "train_processed.pkl")
-testing_data_save_path = os.path.join("data", "test_processed.pkl")
+testing_data_save_path = os.path.join("data", "test_private_processed.pkl")
 
 
 def main(args):

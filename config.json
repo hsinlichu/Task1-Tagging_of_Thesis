@@ -1,8 +1,8 @@
 {
-    "name": "model_cascade_selftrain_bertbase_ft0.001_len60_wilberloss_bs32_7sent_ls7_adamW_strongformer",
+    "name": "model_cascade_selftrain_bertbase_ft0.001_len60_wilberloss_bs32_9sent_ls7_adamW_strongformer_avg",
     "n_gpu": 1,
     "arch": {
-        "type": "ThesisTaggingModel_cascade_bert_7sent",
+        "type": "ThesisTaggingModel_cascade_bert_9sent_avg",
         "args": {
             "dim_embeddings": 768,
             "num_classes": 6,

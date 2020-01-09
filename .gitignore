@@ -112,3 +112,4 @@ datasets/
 __MACOSX/
 *.swp
 .DS_Store
+._*

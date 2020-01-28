@@ -217,7 +217,7 @@ team==1.0
 tempora==1.14.1
 tensorboard==2.0.0
 tensorboardX==1.2
-tensorflow==2.0.0
+tensorflow==2.0.1
 tensorflow-estimator==2.0.0
 tensorflow-serving-api==1.14.0rc0
 tensorflow-serving-api-gpu==1.14.0rc0

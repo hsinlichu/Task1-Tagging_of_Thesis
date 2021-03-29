@@ -143,7 +143,7 @@ pycups==1.9.74
 pycurl==7.43.0.3
 pyelftools==0.25
 pyflakes==2.1.1
-Pygments==2.4.2
+Pygments==2.7.4
 PyGObject==3.34.0
 PyICU==2.3.1
 pyinotify==0.9.6

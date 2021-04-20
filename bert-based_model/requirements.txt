@@ -128,7 +128,7 @@ psutil==5.6.3
 psycopg2==2.8.4
 ptyprocess==0.6.0
 pwquality==1.4.1
-py==1.8.0
+py==1.10.0
 pyalpm==0.9.0
 pyasn1==0.4.7
 pyasn1-modules==0.2.6
